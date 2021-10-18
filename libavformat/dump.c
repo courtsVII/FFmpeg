@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <sys/time.h>
 
 #include "libavutil/channel_layout.h"
 #include "libavutil/display.h"
@@ -46,6 +47,11 @@
         else                                                                  \
             fprintf(f, __VA_ARGS__);                                          \
     } while (0)
+
+struct timestamp {
+  time_t tv_sec;        // used for seconds
+  suseconds_t tv_usec;  // used for microseconds
+};
 
 static void hex_dump_internal(void *avcl, FILE *f, int level,
                               const uint8_t *buf, int size)
@@ -622,9 +628,15 @@ void av_dump_format(AVFormatContext *ic, int index,
                     const char *url, int is_output)
 {
     int i;
+    struct timestamp start_timestamp;
     uint8_t *printed = ic->nb_streams ? av_mallocz(ic->nb_streams) : NULL;
     if (ic->nb_streams && !printed)
         return;
+
+    gettimeofday(&start_timestamp, NULL);
+    av_log(NULL, AV_LOG_INFO, "Start timestamp: %ld.%ld\n",
+            start_timestamp.tv_usec,
+            start_timestamp.tv_usec);
 
     av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s':\n",
            is_output ? "Output" : "Input",
