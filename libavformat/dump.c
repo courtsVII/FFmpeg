@@ -634,15 +634,12 @@ void av_dump_format(AVFormatContext *ic, int index,
         return;
 
     gettimeofday(&start_timestamp, NULL);
-    av_log(NULL, AV_LOG_INFO, "Start timestamp: %ld.%ld\n",
-            start_timestamp.tv_sec,
-            start_timestamp.tv_usec);
-
-    av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s':\n",
+    av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s' %s: %ld.%ld :\n",
            is_output ? "Output" : "Input",
            index,
            is_output ? ic->oformat->name : ic->iformat->name,
-           is_output ? "to" : "from", url);
+           is_output ? "to" : "from", url, "start timestamp", 
+           start_timestamp.tv_sec, start_timestamp.tv_usec);
     dump_metadata(NULL, ic->metadata, "  ");
 
     if (!is_output) {
