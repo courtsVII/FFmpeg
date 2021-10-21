@@ -49,8 +49,8 @@
     } while (0)
 
 struct timestamp {
-  time_t tv_sec;        // used for seconds
-  suseconds_t tv_usec;  // used for microseconds
+  time_t tv_sec;  
+  suseconds_t tv_usec;
 };
 
 static void hex_dump_internal(void *avcl, FILE *f, int level,
@@ -629,17 +629,21 @@ void av_dump_format(AVFormatContext *ic, int index,
 {
     int i;
     struct timestamp start_timestamp;
+    unsigned long long milliseconds_since_epoch;
     uint8_t *printed = ic->nb_streams ? av_mallocz(ic->nb_streams) : NULL;
     if (ic->nb_streams && !printed)
         return;
 
     gettimeofday(&start_timestamp, NULL);
-    av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s' %s: %ld.%ld:\n",
+    milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
+        * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
+
+    av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s' %s: %llu:\n",
            is_output ? "Output" : "Input",
            index,
            is_output ? ic->oformat->name : ic->iformat->name,
            is_output ? "to" : "from", url, "start timestamp", 
-           start_timestamp.tv_sec, start_timestamp.tv_usec);
+           milliseconds_since_epoch);
     dump_metadata(NULL, ic->metadata, "  ");
 
     if (!is_output) {
