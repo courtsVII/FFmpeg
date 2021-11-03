@@ -29,6 +29,7 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdint.h>
+#include <sys/time.h>
 
 #include "libavutil/avstring.h"
 #include "libavutil/channel_layout.h"
@@ -124,6 +125,11 @@ typedef struct PacketQueue {
     SDL_mutex *mutex;
     SDL_cond *cond;
 } PacketQueue;
+
+struct timeval {
+  time_t tv_sec;  
+  suseconds_t tv_usec;
+};
 
 #define VIDEO_PICTURE_QUEUE_SIZE 3
 #define SUBPICTURE_QUEUE_SIZE 16
@@ -1574,6 +1580,8 @@ static void video_refresh(void *opaque, double *remaining_time)
 {
     VideoState *is = opaque;
     double time;
+    struct timeval start_timestamp;
+    unsigned long long milliseconds_since_epoch;
 
     Frame *sp, *sp2;
 
@@ -1737,6 +1745,10 @@ display:
             last_time = cur_time;
         }
     }
+    gettimeofday(&start_timestamp, NULL);
+    milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
+        * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
+    av_log(NULL, AV_LOG_INFO, "rendered frame at: %llu\n", milliseconds_since_epoch);
 }
 
 static int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duration, int64_t pos, int serial)

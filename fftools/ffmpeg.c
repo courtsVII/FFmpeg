@@ -126,6 +126,11 @@ typedef struct BenchmarkTimeStamps {
     int64_t sys_usec;
 } BenchmarkTimeStamps;
 
+struct timeval {
+  time_t tv_sec;  
+  suseconds_t tv_usec;
+};
+
 static void do_video_stats(OutputStream *ost, int frame_size);
 static BenchmarkTimeStamps get_benchmark_time_stamps(void);
 static int64_t getmaxrss(void);
@@ -1155,6 +1160,8 @@ static void do_video_out(OutputFile *of,
     double duration = 0;
     double sync_ipts = AV_NOPTS_VALUE;
     int frame_size = 0;
+    struct timeval start_timestamp;
+    unsigned long long milliseconds_since_epoch;
     InputStream *ist = NULL;
     AVFilterContext *filter = ost->filter->filter;
 
@@ -1367,6 +1374,13 @@ static void do_video_out(OutputFile *of,
                    av_ts2str(in_picture->pts), av_ts2timestr(in_picture->pts, &enc->time_base),
                    enc->time_base.num, enc->time_base.den);
         }
+
+        gettimeofday(&start_timestamp, NULL);
+        milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
+            * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
+
+        av_log(NULL, AV_LOG_INFO, "encoded: frame_pts: %s at: %llu\n",
+                av_ts2str(in_picture->pts), milliseconds_since_epoch);
 
         ost->frames_encoded++;
 

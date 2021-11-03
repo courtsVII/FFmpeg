@@ -48,7 +48,7 @@
             fprintf(f, __VA_ARGS__);                                          \
     } while (0)
 
-struct timestamp {
+struct timeval {
   time_t tv_sec;  
   suseconds_t tv_usec;
 };
@@ -628,7 +628,7 @@ void av_dump_format(AVFormatContext *ic, int index,
                     const char *url, int is_output)
 {
     int i;
-    struct timestamp start_timestamp;
+    struct timeval start_timestamp;
     unsigned long long milliseconds_since_epoch;
     uint8_t *printed = ic->nb_streams ? av_mallocz(ic->nb_streams) : NULL;
     if (ic->nb_streams && !printed)
