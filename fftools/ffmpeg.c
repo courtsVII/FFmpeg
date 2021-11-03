@@ -126,11 +126,6 @@ typedef struct BenchmarkTimeStamps {
     int64_t sys_usec;
 } BenchmarkTimeStamps;
 
-struct timeval {
-  time_t tv_sec;  
-  suseconds_t tv_usec;
-};
-
 static void do_video_stats(OutputStream *ost, int frame_size);
 static BenchmarkTimeStamps get_benchmark_time_stamps(void);
 static int64_t getmaxrss(void);

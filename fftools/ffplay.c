@@ -126,11 +126,6 @@ typedef struct PacketQueue {
     SDL_cond *cond;
 } PacketQueue;
 
-struct timeval {
-  time_t tv_sec;  
-  suseconds_t tv_usec;
-};
-
 #define VIDEO_PICTURE_QUEUE_SIZE 3
 #define SUBPICTURE_QUEUE_SIZE 16
 #define SAMPLE_QUEUE_SIZE 9

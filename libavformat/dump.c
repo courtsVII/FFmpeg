@@ -48,11 +48,6 @@
             fprintf(f, __VA_ARGS__);                                          \
     } while (0)
 
-struct timeval {
-  time_t tv_sec;  
-  suseconds_t tv_usec;
-};
-
 static void hex_dump_internal(void *avcl, FILE *f, int level,
                               const uint8_t *buf, int size)
 {
