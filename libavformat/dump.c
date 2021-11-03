@@ -21,7 +21,6 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <sys/time.h>
 
 #include "libavutil/channel_layout.h"
 #include "libavutil/display.h"
@@ -623,22 +622,15 @@ void av_dump_format(AVFormatContext *ic, int index,
                     const char *url, int is_output)
 {
     int i;
-    struct timeval start_timestamp;
-    unsigned long long milliseconds_since_epoch;
     uint8_t *printed = ic->nb_streams ? av_mallocz(ic->nb_streams) : NULL;
     if (ic->nb_streams && !printed)
         return;
 
-    gettimeofday(&start_timestamp, NULL);
-    milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
-        * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
-
-    av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s' %s: %llu:\n",
+    av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s':\n",
            is_output ? "Output" : "Input",
            index,
            is_output ? ic->oformat->name : ic->iformat->name,
-           is_output ? "to" : "from", url, "start timestamp", 
-           milliseconds_since_epoch);
+           is_output ? "to" : "from", url);
     dump_metadata(NULL, ic->metadata, "  ");
 
     if (!is_output) {
