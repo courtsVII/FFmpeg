@@ -1155,8 +1155,7 @@ static void do_video_out(OutputFile *of,
     double duration = 0;
     double sync_ipts = AV_NOPTS_VALUE;
     int frame_size = 0;
-    struct timeval start_timestamp;
-    unsigned long long milliseconds_since_epoch;
+    struct timespec start_timestamp;
     InputStream *ist = NULL;
     AVFilterContext *filter = ost->filter->filter;
 
@@ -1432,10 +1431,9 @@ static void do_video_out(OutputFile *of,
         av_frame_free(&ost->last_frame);
 
     if (ost -> frame_number == 1) {
-        gettimeofday(&start_timestamp, NULL);
-        milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
-            * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
-        av_log(NULL, AV_LOG_INFO, "recording_timestamp: %llu", milliseconds_since_epoch);
+        clock_gettime(CLOCK_REALTIME, &start_timestamp);
+        av_log(NULL, AV_LOG_INFO, "recording_timestamp: %llu\n", 
+            llround((long long) start_timestamp.tv_sec * 1000 + start_timestamp.tv_nsec / 1e6));
     }
     return;
 error:

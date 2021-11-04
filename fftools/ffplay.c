@@ -1575,8 +1575,7 @@ static void video_refresh(void *opaque, double *remaining_time)
 {
     VideoState *is = opaque;
     double time;
-    struct timeval start_timestamp;
-    unsigned long long milliseconds_since_epoch;
+    struct timespec start_timestamp;
 
     Frame *sp, *sp2;
 
@@ -1717,9 +1716,7 @@ display:
                 av_diff = get_master_clock(is) - get_clock(&is->audclk);
 
             av_bprint_init(&buf, 0, AV_BPRINT_SIZE_AUTOMATIC);
-            gettimeofday(&start_timestamp, NULL);
-            milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
-                * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
+            clock_gettime(CLOCK_REALTIME, &start_timestamp);
             av_bprintf(&buf,
                       "%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%"PRId64"/%"PRId64" playback_timestamp=%llu   \r",
                       get_master_clock(is),
@@ -1731,8 +1728,8 @@ display:
                       sqsize,
                       is->video_st ? is->viddec.avctx->pts_correction_num_faulty_dts : 0,
                       is->video_st ? is->viddec.avctx->pts_correction_num_faulty_pts : 0,
-                      milliseconds_since_epoch);
-
+                      llround((long long) start_timestamp.tv_sec * 1000 + start_timestamp.tv_nsec / 1e6)
+                      );
             if (show_status == 1 && AV_LOG_INFO > av_log_get_level())
                 fprintf(stderr, "%s", buf.str);
             else
