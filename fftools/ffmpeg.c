@@ -1421,13 +1421,6 @@ static void do_video_out(OutputFile *of,
 
         if (vstats_filename && frame_size)
             do_video_stats(ost, frame_size);
-
-        if (ost->frames_encoded == 1) {
-            gettimeofday(&start_timestamp, NULL);
-            milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
-                * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
-            av_log(NULL, AV_LOG_INFO, "recording_timestamp: %llu\n", milliseconds_since_epoch);
-        }
     }
 
     if (!ost->last_frame)
@@ -1437,6 +1430,11 @@ static void do_video_out(OutputFile *of,
         av_frame_ref(ost->last_frame, next_picture);
     else
         av_frame_free(&ost->last_frame);
+
+    gettimeofday(&start_timestamp, NULL);
+    milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
+        * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
+    av_log(NULL, AV_LOG_INFO, "recording_timestamp: %llu    frame_number: %d\n", milliseconds_since_epoch, ost->frame_number);
 
     return;
 error:
