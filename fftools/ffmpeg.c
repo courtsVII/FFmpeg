@@ -1370,14 +1370,6 @@ static void do_video_out(OutputFile *of,
                    enc->time_base.num, enc->time_base.den);
         }
 
-        ost->frames_encoded++;
-        if (ost->frames_encoded == 1) {
-            gettimeofday(&start_timestamp, NULL);
-            milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
-                * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
-            av_log(NULL, AV_LOG_INFO, "recording_timestamp: %llu\n", milliseconds_since_epoch);
-        }
-
         ret = avcodec_send_frame(enc, in_picture);
         if (ret < 0)
             goto error;
@@ -1429,6 +1421,13 @@ static void do_video_out(OutputFile *of,
 
         if (vstats_filename && frame_size)
             do_video_stats(ost, frame_size);
+
+        if (ost->frames_encoded == 1) {
+            gettimeofday(&start_timestamp, NULL);
+            milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
+                * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
+            av_log(NULL, AV_LOG_INFO, "recording_timestamp: %llu\n", milliseconds_since_epoch);
+        }
     }
 
     if (!ost->last_frame)
