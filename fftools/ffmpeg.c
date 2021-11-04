@@ -1431,11 +1431,12 @@ static void do_video_out(OutputFile *of,
     else
         av_frame_free(&ost->last_frame);
 
-    gettimeofday(&start_timestamp, NULL);
-    milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
-        * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
-    av_log(NULL, AV_LOG_INFO, "recording_timestamp: %llu    frame_number: %d\n", milliseconds_since_epoch, ost->frame_number);
-
+    if (ost -> frame_number == 1) {
+        gettimeofday(&start_timestamp, NULL);
+        milliseconds_since_epoch = (unsigned long long)(start_timestamp.tv_sec) 
+            * 1000 + (unsigned long long)(start_timestamp.tv_usec) / 1000;
+        av_log(NULL, AV_LOG_INFO, "recording_timestamp: %llu", milliseconds_since_epoch);
+    }
     return;
 error:
     av_log(NULL, AV_LOG_FATAL, "Video encoding failed\n");
