@@ -1155,7 +1155,6 @@ static void do_video_out(OutputFile *of,
     double duration = 0;
     double sync_ipts = AV_NOPTS_VALUE;
     int frame_size = 0;
-    struct timespec start_timestamp;
     InputStream *ist = NULL;
     AVFilterContext *filter = ost->filter->filter;
 
@@ -1430,11 +1429,6 @@ static void do_video_out(OutputFile *of,
     else
         av_frame_free(&ost->last_frame);
 
-    if (ost -> frame_number == 1) {
-        clock_gettime(CLOCK_REALTIME, &start_timestamp);
-        av_log(NULL, AV_LOG_INFO, "recording_timestamp: %llu\n", 
-            llround((long long) start_timestamp.tv_sec * 1000 + start_timestamp.tv_nsec / 1e6));
-    }
     return;
 error:
     av_log(NULL, AV_LOG_FATAL, "Video encoding failed\n");
@@ -4788,6 +4782,9 @@ static int transcode(void)
     InputStream *ist;
     int64_t timer_start;
     int64_t total_packets_written = 0;
+    int64_t cur_time;
+    struct timespec ts;
+    int first_transcode_step = 1;
 
     ret = transcode_init();
     if (ret < 0)
@@ -4805,8 +4802,7 @@ static int transcode(void)
 #endif
 
     while (!received_sigterm) {
-        int64_t cur_time= av_gettime_relative();
-
+        cur_time= av_gettime_relative();
         /* if 'q' pressed, exits */
         if (stdin_interaction)
             if (check_keyboard_interaction(cur_time) < 0)
@@ -4826,6 +4822,12 @@ static int transcode(void)
 
         /* dump report by using the output first video and audio streams */
         print_report(0, timer_start, cur_time);
+        if (first_transcode_step) {
+            clock_gettime(CLOCK_REALTIME, &ts);
+            av_log(NULL, AV_LOG_INFO, "recording_timestamp: %llu\n",
+                llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+            first_transcode_step = 0;
+        }
     }
 #if HAVE_THREADS
     free_input_threads();
