@@ -4782,9 +4782,11 @@ static int transcode(void)
     AVFormatContext *os;
     OutputStream *ost;
     InputStream *ist;
+    struct timespec ts;
     int64_t timer_start;
     int64_t cur_time;
     int64_t total_packets_written = 0;
+    int first_iteration = 1;
 
     ret = transcode_init();
     if (ret < 0)
@@ -4816,6 +4818,14 @@ static int transcode(void)
         }
 
         ret = transcode_step();
+        if (first_iteration) {
+            clock_gettime(CLOCK_REALTIME, &ts);
+            printf("start_timestamp: %llu\n", 
+                llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+            first_iteration = 0;
+        }
+
+        
         if (ret < 0 && ret != AVERROR_EOF) {
             av_log(NULL, AV_LOG_ERROR, "Error while filtering: %s\n", av_err2str(ret));
             break;
@@ -4970,8 +4980,14 @@ static void log_callback_null(void *ptr, int level, const char *fmt, va_list vl)
 
 int main(int argc, char **argv)
 {
+    struct timespec ts;
     int i, ret;
     BenchmarkTimeStamps ti;
+
+
+    clock_gettime(CLOCK_REALTIME, &ts);
+    printf("invocation timestamp %llu:\n", 
+        llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
 
     init_dynload();
 

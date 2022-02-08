@@ -29,6 +29,7 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdint.h>
+#include <time.h>
 
 #include "libavutil/avstring.h"
 #include "libavutil/channel_layout.h"
@@ -3279,10 +3280,13 @@ static void event_loop(VideoState *cur_stream)
 {
     SDL_Event event;
     double incr, pos, frac;
+    struct timespec ts;
+    int first_iteration = 1;
 
     for (;;) {
         double x;
         refresh_loop_wait_event(cur_stream, &event);
+        
         switch (event.type) {
         case SDL_KEYDOWN:
             if (exit_on_keydown || event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_q) {
@@ -3471,6 +3475,15 @@ static void event_loop(VideoState *cur_stream)
         default:
             break;
         }
+
+        if (first_iteration) {
+            // Print start_timestamp on first iteration after frames are rendered
+            clock_gettime(CLOCK_REALTIME, &ts);
+            printf("start_timestamp: %llu\n", 
+                llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+            first_iteration = 0;
+        }
+
     }
 }
 
@@ -3682,9 +3695,14 @@ void show_help_default(const char *opt, const char *arg)
 /* Called from the main */
 int main(int argc, char **argv)
 {
+    // TODOH: Delete
+    struct timespec ts;
     int flags;
     VideoState *is;
 
+    clock_gettime(CLOCK_REALTIME, &ts);
+    printf("invocation timestamp %llu:\n", 
+        llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
     init_dynload();
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
