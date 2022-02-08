@@ -3695,14 +3695,9 @@ void show_help_default(const char *opt, const char *arg)
 /* Called from the main */
 int main(int argc, char **argv)
 {
-    // TODOH: Delete
-    struct timespec ts;
     int flags;
     VideoState *is;
 
-    clock_gettime(CLOCK_REALTIME, &ts);
-    printf("invocation timestamp %llu:\n", 
-        llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
     init_dynload();
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);

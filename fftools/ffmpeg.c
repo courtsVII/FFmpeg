@@ -4980,14 +4980,8 @@ static void log_callback_null(void *ptr, int level, const char *fmt, va_list vl)
 
 int main(int argc, char **argv)
 {
-    struct timespec ts;
     int i, ret;
     BenchmarkTimeStamps ti;
-
-
-    clock_gettime(CLOCK_REALTIME, &ts);
-    printf("invocation timestamp %llu:\n", 
-        llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
 
     init_dynload();
 
