@@ -3479,7 +3479,7 @@ static void event_loop(VideoState *cur_stream)
         if (first_iteration) {
             // Print start_timestamp on first iteration after frames are rendered
             clock_gettime(CLOCK_REALTIME, &ts);
-            printf("start_timestamp: %llu\n", 
+            av_log(NULL, AV_LOG_INFO, "start_timestamp: %llu\n", 
                 llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
             first_iteration = 0;
         }
