@@ -1370,7 +1370,7 @@ static void video_display(VideoState *is, int *log_start_timestamp)
     else if (is->video_st)
         video_image_display(is);
     SDL_RenderPresent(renderer);
-    if (is->video_st && *log_start_timestamp) {
+    if (is->video_st && *log_start_timestamp && !renderer->hidden) {
         if (is->video_st->nb_frames) {
             clock_gettime(CLOCK_REALTIME, &ts);
             av_log(NULL, AV_LOG_INFO, "start_timestamp: %llu\n", 
