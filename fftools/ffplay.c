@@ -1571,7 +1571,7 @@ static void update_video_pts(VideoState *is, double pts, int64_t pos, int serial
 }
 
 /* called to display each frame */
-static void video_refresh(void *opaque, double *remaining_time)
+static void video_refresh(void *opaque, double *remaining_time, int log_start_timestamp)
 {
     VideoState *is = opaque;
     double time;
@@ -1585,6 +1585,11 @@ static void video_refresh(void *opaque, double *remaining_time)
         time = av_gettime_relative() / 1000000.0;
         if (is->force_refresh || is->last_vis_time + rdftspeed < time) {
             video_display(is);
+            if (log_start_timestamp) {
+                clock_gettime(CLOCK_REALTIME, &ts);
+                av_log(NULL, AV_LOG_INFO, "start_timestamp: %llu\n", 
+                    llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+            }
             is->last_vis_time = time;
         }
         *remaining_time = FFMIN(*remaining_time, is->last_vis_time + rdftspeed - time);
@@ -3231,7 +3236,7 @@ static void toggle_audio_display(VideoState *is)
     }
 }
 
-static void refresh_loop_wait_event(VideoState *is, SDL_Event *event) {
+static void refresh_loop_wait_event(VideoState *is, SDL_Event *event, int log_start_timestamp) {
     double remaining_time = 0.0;
     SDL_PumpEvents();
     while (!SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT)) {
@@ -3243,7 +3248,7 @@ static void refresh_loop_wait_event(VideoState *is, SDL_Event *event) {
             av_usleep((int64_t)(remaining_time * 1000000.0));
         remaining_time = REFRESH_RATE;
         if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh))
-            video_refresh(is, &remaining_time);
+            video_refresh(is, &remaining_time, log_start_timestamp);
         SDL_PumpEvents();
     }
 }
@@ -3281,17 +3286,13 @@ static void event_loop(VideoState *cur_stream)
     SDL_Event event;
     double incr, pos, frac;
     struct timespec ts;
-    int first_iteration = 1;
+    int log_start_timestamp = 1;
 
     for (;;) {
         double x;
-        refresh_loop_wait_event(cur_stream, &event);
-        if (first_iteration) {
-            // Print start_timestamp on first iteration after frames are rendered
-            clock_gettime(CLOCK_REALTIME, &ts);
-            av_log(NULL, AV_LOG_INFO, "start_timestamp: %llu\n", 
-                llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
-            first_iteration = 0;
+        refresh_loop_wait_event(cur_stream, &event, log_start_timestamp);
+        if (log_start_timestamp) {
+            log_start_timestamp = 0;
         }
         
         switch (event.type) {
