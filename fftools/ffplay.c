@@ -1577,6 +1577,7 @@ static void video_refresh(void *opaque, double *remaining_time, int log_start_ti
     double time;
 
     Frame *sp, *sp2;
+    struct timespec *ts;
 
     if (!is->paused && get_master_sync_type(is) == AV_SYNC_EXTERNAL_CLOCK && is->realtime)
         check_external_clock_speed(is);
@@ -1586,9 +1587,9 @@ static void video_refresh(void *opaque, double *remaining_time, int log_start_ti
         if (is->force_refresh || is->last_vis_time + rdftspeed < time) {
             video_display(is);
             if (log_start_timestamp) {
-                clock_gettime(CLOCK_REALTIME, &ts);
+                clock_gettime(CLOCK_REALTIME, ts);
                 av_log(NULL, AV_LOG_INFO, "start_timestamp: %llu\n", 
-                    llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+                    llround((long long) ts->tv_sec * 1000 + ts->tv_nsec / 1e6));
             }
             is->last_vis_time = time;
         }
@@ -3285,7 +3286,6 @@ static void event_loop(VideoState *cur_stream)
 {
     SDL_Event event;
     double incr, pos, frac;
-    struct timespec ts;
     int log_start_timestamp = 1;
 
     for (;;) {
