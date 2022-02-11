@@ -1375,7 +1375,9 @@ static void video_display(VideoState *is, int *start_timestamp_counter)
     SDL_RenderPresent(renderer);
     if ((*start_timestamp_counter) == steps_till_first_frame_is_displayed) {
         clock_gettime(CLOCK_REALTIME, &ts);
-        av_log(NULL, AV_LOG_QUIET, "ffplay start_timestamp: %llu\n", 
+        // Use warning log level so that we can have less noisy logs in our use
+        // case. Bit of a hack but works fine.
+        av_log(NULL, AV_LOG_WARNING, "ffplay start_timestamp: %llu\n", 
             llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
         *start_timestamp_counter = 0;
     }
