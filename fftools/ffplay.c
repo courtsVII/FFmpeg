@@ -1359,6 +1359,7 @@ static int video_open(VideoState *is)
 /* display the current picture, if any */
 static void video_display(VideoState *is, int *log_start_timestamp)
 {
+    struct timespec *ts;
     if (!is->width)
         video_open(is);
 
@@ -1583,7 +1584,6 @@ static void video_refresh(void *opaque, double *remaining_time, int *log_start_t
     double time;
 
     Frame *sp, *sp2;
-    struct timespec *ts;
 
     if (!is->paused && get_master_sync_type(is) == AV_SYNC_EXTERNAL_CLOCK && is->realtime)
         check_external_clock_speed(is);
