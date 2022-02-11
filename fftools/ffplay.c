@@ -1375,7 +1375,7 @@ static void video_display(VideoState *is, int *start_timestamp_counter)
     SDL_RenderPresent(renderer);
     if ((*start_timestamp_counter) == steps_till_first_frame_is_displayed) {
         clock_gettime(CLOCK_REALTIME, &ts);
-        av_log(NULL, AV_LOG_QUIET, "start_timestamp: %llu\n", 
+        av_log(NULL, AV_LOG_QUIET, "ffplay start_timestamp: %llu\n", 
             llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
         *start_timestamp_counter = 0;
     }
