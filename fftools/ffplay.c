@@ -1586,11 +1586,6 @@ static void video_refresh(void *opaque, double *remaining_time, int log_start_ti
         time = av_gettime_relative() / 1000000.0;
         if (is->force_refresh || is->last_vis_time + rdftspeed < time) {
             video_display(is);
-            if (log_start_timestamp) {
-                clock_gettime(CLOCK_REALTIME, ts);
-                av_log(NULL, AV_LOG_INFO, "start_timestamp: %llu\n", 
-                    llround((long long) ts->tv_sec * 1000 + ts->tv_nsec / 1e6));
-            }
             is->last_vis_time = time;
         }
         *remaining_time = FFMIN(*remaining_time, is->last_vis_time + rdftspeed - time);
@@ -1690,8 +1685,14 @@ retry:
         }
 display:
         /* display picture */
-        if (!display_disable && is->force_refresh && is->show_mode == SHOW_MODE_VIDEO && is->pictq.rindex_shown)
+        if (!display_disable && is->force_refresh && is->show_mode == SHOW_MODE_VIDEO && is->pictq.rindex_shown) {
             video_display(is);
+            if (log_start_timestamp) {
+                clock_gettime(CLOCK_REALTIME, ts);
+                av_log(NULL, AV_LOG_INFO, "start_timestamp: %llu\n", 
+                    llround((long long) ts->tv_sec * 1000 + ts->tv_nsec / 1e6));
+            }
+        }
     }
     is->force_refresh = 0;
     if (show_status) {
