@@ -3286,6 +3286,13 @@ static void event_loop(VideoState *cur_stream)
     for (;;) {
         double x;
         refresh_loop_wait_event(cur_stream, &event);
+        if (first_iteration) {
+            // Print start_timestamp on first iteration after frames are rendered
+            clock_gettime(CLOCK_REALTIME, &ts);
+            av_log(NULL, AV_LOG_INFO, "start_timestamp: %llu\n", 
+                llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+            first_iteration = 0;
+        }
         
         switch (event.type) {
         case SDL_KEYDOWN:
@@ -3475,15 +3482,6 @@ static void event_loop(VideoState *cur_stream)
         default:
             break;
         }
-
-        if (first_iteration) {
-            // Print start_timestamp on first iteration after frames are rendered
-            clock_gettime(CLOCK_REALTIME, &ts);
-            av_log(NULL, AV_LOG_INFO, "start_timestamp: %llu\n", 
-                llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
-            first_iteration = 0;
-        }
-
     }
 }
 
