@@ -4823,8 +4823,6 @@ static int transcode(void)
         // Log start_timestamp after recording starts
         if (transcode_iteration == transcode_steps_to_start_recording) {
             clock_gettime(CLOCK_REALTIME, &ts);
-            // Use warning log level so that we can have less noisy logs in our use
-            // case. Bit of a hack but works fine.
             av_log(NULL, AV_LOG_INFO, "ffmpeg recording start_timestamp: %llu\n", 
                 llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
             transcode_iteration = 0;
