@@ -634,6 +634,7 @@ void av_dump_format(AVFormatContext *ic, int index,
            is_output ? ic->oformat->name : ic->iformat->name,
            is_output ? "to" : "from", url, "start_timestamp", 
            llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+
     dump_metadata(NULL, ic->metadata, "  ");
 
     if (!is_output) {
