@@ -114,6 +114,7 @@ typedef struct MyAVPacketList {
     int serial;
 } MyAVPacketList;
 
+
 typedef struct PacketQueue {
     AVFifoBuffer *pkt_list;
     int nb_packets;

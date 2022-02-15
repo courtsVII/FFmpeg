@@ -405,6 +405,7 @@ static BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
     signal(sig, func)
 #endif
 
+
 void term_init(void)
 {
 #if defined __linux__
