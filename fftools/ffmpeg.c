@@ -108,7 +108,6 @@
 
 const char program_name[] = "ffmpeg";
 const int program_birth_year = 2000;
-const int transcode_steps_to_start_recording = 3;
 
 static FILE *vstats_file;
 
@@ -4787,7 +4786,7 @@ static int transcode(void)
     int64_t timer_start;
     int64_t cur_time;
     int64_t total_packets_written = 0;
-    int transcode_iteration = 1;
+    int first_iteration = 1;
 
     ret = transcode_init();
     if (ret < 0)
@@ -4821,14 +4820,11 @@ static int transcode(void)
         ret = transcode_step();
         
         // Log start_timestamp after recording starts
-        if (transcode_iteration == transcode_steps_to_start_recording) {
+        if (first_iteration) {
             clock_gettime(CLOCK_REALTIME, &ts);
             av_log(NULL, AV_LOG_INFO, "ffmpeg recording start_timestamp: %llu\n", 
                 llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
-            transcode_iteration = 0;
-        }
-        if (transcode_iteration) {
-            ++transcode_iteration;
+            first_iteration = 0;
         }
         
         if (ret < 0 && ret != AVERROR_EOF) {
