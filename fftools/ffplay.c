@@ -308,7 +308,7 @@ typedef struct VideoState {
 
 /* The number of event loop iterations before the first frame 
 is rendered to the screen by SDL */
-static const int event_loop_iterations_till_video_displays = 3;
+static const int event_loop_iterations_till_video_displays = 2;
 
 /* options specified by the user */
 static const AVInputFormat *file_iformat;

@@ -108,7 +108,7 @@
 
 const char program_name[] = "ffmpeg";
 const int program_birth_year = 2000;
-const int transcode_steps_to_start_recording = 6;
+const int transcode_steps_to_start_recording = 3;
 
 static FILE *vstats_file;
 
