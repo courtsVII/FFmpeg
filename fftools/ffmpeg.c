@@ -4786,10 +4786,7 @@ static int transcode(void)
     int64_t timer_start;
     int64_t cur_time;
     int64_t total_packets_written = 0;
-
-    clock_gettime(CLOCK_REALTIME, &ts);
-    av_log(NULL, AV_LOG_INFO, "ffmpeg start_timestamp: %llu\n", 
-        llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+    int log_start_timestamp = 1;
 
     ret = transcode_init();
     if (ret < 0)
@@ -4821,6 +4818,13 @@ static int transcode(void)
         }
 
         ret = transcode_step();
+
+        if (log_start_timestamp) {
+            clock_gettime(CLOCK_REALTIME, &ts);
+            av_log(NULL, AV_LOG_INFO, "ffmpeg start_timestamp: %llu\n", 
+                llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+            log_start_timestamp = 0;
+        }
         
         if (ret < 0 && ret != AVERROR_EOF) {
             av_log(NULL, AV_LOG_ERROR, "Error while filtering: %s\n", av_err2str(ret));

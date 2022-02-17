@@ -3282,10 +3282,7 @@ static void event_loop(VideoState *cur_stream)
     SDL_Event event;
     struct timespec ts;
     double incr, pos, frac;
-    
-    clock_gettime(CLOCK_REALTIME, &ts);
-    av_log(NULL, AV_LOG_INFO, "ffplay start_timestamp: %llu\n", 
-        llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+    int log_start_timestamp = 1;
 
     for (;;) {
         double x;
@@ -3469,6 +3466,12 @@ static void event_loop(VideoState *cur_stream)
                     }
                 case SDL_WINDOWEVENT_EXPOSED:
                     cur_stream->force_refresh = 1;
+                    if (log_start_timestamp) {
+                        clock_gettime(CLOCK_REALTIME, &ts);
+                        av_log(NULL, AV_LOG_INFO, "ffplay start_timestamp: %llu\n", 
+                            llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+                        log_start_timestamp = 0;
+                    }
             }
             break;
         case SDL_QUIT:
