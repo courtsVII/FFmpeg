@@ -4820,7 +4820,12 @@ static int transcode(void)
 
         ret = transcode_step();
         
-        // Log start_timestamp after recording starts
+        if (ret < 0 && ret != AVERROR_EOF) {
+            av_log(NULL, AV_LOG_ERROR, "Error while filtering: %s\n", av_err2str(ret));
+            break;
+        }
+
+        /* Log start_timestamp after recording starts */
         if (transcode_iteration == transcode_steps_to_start_recording) {
             clock_gettime(CLOCK_REALTIME, &ts);
             av_log(NULL, AV_LOG_INFO, "ffmpeg start_timestamp: %llu\n", 
@@ -4829,11 +4834,6 @@ static int transcode(void)
         }
         if (transcode_iteration) {
             ++transcode_iteration;
-        }
-        
-        if (ret < 0 && ret != AVERROR_EOF) {
-            av_log(NULL, AV_LOG_ERROR, "Error while filtering: %s\n", av_err2str(ret));
-            break;
         }
 
         /* dump report by using the output first video and audio streams */

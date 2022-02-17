@@ -1367,16 +1367,16 @@ static void video_display(VideoState *is, int *log_start_timestamp)
     SDL_RenderClear(renderer);
     if (is->audio_st && is->show_mode != SHOW_MODE_VIDEO)
         video_audio_display(is);
-    else if (is->video_st) {
+    else if (is->video_st)
         video_image_display(is);
-        if (*log_start_timestamp) {
-            clock_gettime(CLOCK_REALTIME, &ts);
-            av_log(NULL, AV_LOG_INFO, "ffplay start_timestamp: %llu\n", 
-                llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
-            *log_start_timestamp = 0;
-        }
-    }
     SDL_RenderPresent(renderer);
+    if (*log_start_timestamp && is->video_st) {
+        clock_gettime(CLOCK_REALTIME, &ts);
+        av_log(NULL, AV_LOG_INFO, "ffplay start_timestamp: %llu\n", 
+            llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+            
+        *log_start_timestamp = 0;
+    }
 }
 
 static double get_clock(Clock *c)
