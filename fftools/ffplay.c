@@ -29,6 +29,7 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdint.h>
+#include <time.h>
 
 #include "libavutil/avstring.h"
 #include "libavutil/channel_layout.h"
@@ -1356,8 +1357,9 @@ static int video_open(VideoState *is)
 }
 
 /* display the current picture, if any */
-static void video_display(VideoState *is)
+static void video_display(VideoState *is, int *log_start_timestamp)
 {
+    struct timespec ts;
     if (!is->width)
         video_open(is);
 
@@ -1368,6 +1370,12 @@ static void video_display(VideoState *is)
     else if (is->video_st)
         video_image_display(is);
     SDL_RenderPresent(renderer);
+    if (is->video_st && *log_start_timestamp) {
+        clock_gettime(CLOCK_REALTIME, &ts);
+        av_log(NULL, AV_LOG_INFO, "ffplay playback start_timestamp: %llu\n", 
+            llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
+        *log_start_timestamp = 0;
+    }
 }
 
 static double get_clock(Clock *c)
@@ -1570,7 +1578,7 @@ static void update_video_pts(VideoState *is, double pts, int64_t pos, int serial
 }
 
 /* called to display each frame */
-static void video_refresh(void *opaque, double *remaining_time)
+static void video_refresh(void *opaque, double *remaining_time, int *log_start_timestamp)
 {
     VideoState *is = opaque;
     double time;
@@ -1583,7 +1591,7 @@ static void video_refresh(void *opaque, double *remaining_time)
     if (!display_disable && is->show_mode != SHOW_MODE_VIDEO && is->audio_st) {
         time = av_gettime_relative() / 1000000.0;
         if (is->force_refresh || is->last_vis_time + rdftspeed < time) {
-            video_display(is);
+            video_display(is, log_start_timestamp);
             is->last_vis_time = time;
         }
         *remaining_time = FFMIN(*remaining_time, is->last_vis_time + rdftspeed - time);
@@ -1683,8 +1691,9 @@ retry:
         }
 display:
         /* display picture */
-        if (!display_disable && is->force_refresh && is->show_mode == SHOW_MODE_VIDEO && is->pictq.rindex_shown)
-            video_display(is);
+        if (!display_disable && is->force_refresh && is->show_mode == SHOW_MODE_VIDEO && is->pictq.rindex_shown) {
+            video_display(is, log_start_timestamp);
+        }
     }
     is->force_refresh = 0;
     if (show_status) {
@@ -3230,7 +3239,7 @@ static void toggle_audio_display(VideoState *is)
     }
 }
 
-static void refresh_loop_wait_event(VideoState *is, SDL_Event *event) {
+static void refresh_loop_wait_event(VideoState *is, SDL_Event *event, int *log_start_timestamp) {
     double remaining_time = 0.0;
     SDL_PumpEvents();
     while (!SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT)) {
@@ -3242,7 +3251,7 @@ static void refresh_loop_wait_event(VideoState *is, SDL_Event *event) {
             av_usleep((int64_t)(remaining_time * 1000000.0));
         remaining_time = REFRESH_RATE;
         if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh))
-            video_refresh(is, &remaining_time);
+            video_refresh(is, &remaining_time, log_start_timestamp);
         SDL_PumpEvents();
     }
 }
@@ -3279,10 +3288,12 @@ static void event_loop(VideoState *cur_stream)
 {
     SDL_Event event;
     double incr, pos, frac;
+    int log_start_timestamp = 1;
 
     for (;;) {
         double x;
-        refresh_loop_wait_event(cur_stream, &event);
+        refresh_loop_wait_event(cur_stream, &event, &log_start_timestamp);
+        
         switch (event.type) {
         case SDL_KEYDOWN:
             if (exit_on_keydown || event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_q) {
