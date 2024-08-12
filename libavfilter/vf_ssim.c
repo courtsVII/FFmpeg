@@ -31,19 +31,19 @@
 
 /*
  * @file
- * Caculate the SSIM between two input videos.
+ * Calculate the SSIM between two input videos.
  */
 
 #include "libavutil/avstring.h"
+#include "libavutil/file_open.h"
+#include "libavutil/mem.h"
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
 #include "avfilter.h"
 #include "drawutils.h"
-#include "formats.h"
 #include "framesync.h"
 #include "internal.h"
 #include "ssim.h"
-#include "video.h"
 
 typedef struct SSIMContext {
     const AVClass *class;
@@ -359,6 +359,13 @@ static int do_ssim(FFFrameSync *fs)
         td.planeheight[n] = s->planeheight[n];
     }
 
+    if (master->color_range != ref->color_range) {
+        av_log(ctx, AV_LOG_WARNING, "master and reference "
+               "frames use different color ranges (%s != %s)\n",
+               av_color_range_name(master->color_range),
+               av_color_range_name(ref->color_range));
+    }
+
     ff_filter_execute(ctx, s->ssim_plane, &td, NULL,
                       FFMIN((s->planeheight[1] + 3) >> 2, s->nb_threads));
 
@@ -404,7 +411,7 @@ static av_cold int init(AVFilterContext *ctx)
         if (!strcmp(s->stats_file_str, "-")) {
             s->stats_file = stdout;
         } else {
-            s->stats_file = fopen(s->stats_file_str, "w");
+            s->stats_file = avpriv_fopen_utf8(s->stats_file_str, "w");
             if (!s->stats_file) {
                 int err = AVERROR(errno);
                 char buf[128];
@@ -478,8 +485,9 @@ static int config_input_ref(AVFilterLink *inlink)
     s->ssim_plane = desc->comp[0].depth > 8 ? ssim_plane_16bit : ssim_plane;
     s->dsp.ssim_4x4_line = ssim_4x4xn_8bit;
     s->dsp.ssim_end_line = ssim_endn_8bit;
-    if (ARCH_X86)
-        ff_ssim_init_x86(&s->dsp);
+#if ARCH_X86
+    ff_ssim_init_x86(&s->dsp);
+#endif
 
     s->score = av_calloc(s->nb_threads, sizeof(*s->score));
     if (!s->score)
@@ -592,5 +600,7 @@ const AVFilter ff_vf_ssim = {
     FILTER_INPUTS(ssim_inputs),
     FILTER_OUTPUTS(ssim_outputs),
     FILTER_PIXFMTS_ARRAY(pix_fmts),
-    .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_INTERNAL | AVFILTER_FLAG_SLICE_THREADS,
+    .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_INTERNAL |
+                     AVFILTER_FLAG_SLICE_THREADS             |
+                     AVFILTER_FLAG_METADATA_ONLY,
 };

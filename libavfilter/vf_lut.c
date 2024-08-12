@@ -24,10 +24,13 @@
  * value, and apply it to input video.
  */
 
+#include "config_components.h"
+
 #include "libavutil/attributes.h"
 #include "libavutil/bswap.h"
 #include "libavutil/common.h"
 #include "libavutil/eval.h"
+#include "libavutil/mem.h"
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
 #include "avfilter.h"
@@ -69,7 +72,6 @@ typedef struct LutContext {
     int is_planar;
     int is_16bit;
     int step;
-    int negate_alpha; /* only used by negate */
 } LutContext;
 
 #define Y 0
@@ -581,11 +583,6 @@ static const AVFilterPad inputs[] = {
       .config_props = config_props,
     },
 };
-static const AVFilterPad outputs[] = {
-    { .name = "default",
-      .type = AVMEDIA_TYPE_VIDEO,
-    },
-};
 
 #define DEFINE_LUT_FILTER(name_, description_, priv_class_)             \
     const AVFilter ff_vf_##name_ = {                                    \
@@ -596,7 +593,7 @@ static const AVFilterPad outputs[] = {
         .init          = name_##_init,                                  \
         .uninit        = uninit,                                        \
         FILTER_INPUTS(inputs),                                          \
-        FILTER_OUTPUTS(outputs),                                        \
+        FILTER_OUTPUTS(ff_video_default_filterpad),                     \
         FILTER_QUERY_FUNC(query_formats),                               \
         .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC |       \
                          AVFILTER_FLAG_SLICE_THREADS,                   \
@@ -641,31 +638,4 @@ static av_cold int lutrgb_init(AVFilterContext *ctx)
 
 DEFINE_LUT_FILTER(lutrgb, "Compute and apply a lookup table to the RGB input video.",
                   lut);
-#endif
-
-#if CONFIG_NEGATE_FILTER
-
-static const AVOption negate_options[] = {
-    { "negate_alpha", NULL, OFFSET(negate_alpha), AV_OPT_TYPE_BOOL, { .i64 = 0 }, 0, 1, FLAGS },
-    { NULL }
-};
-
-AVFILTER_DEFINE_CLASS(negate);
-
-static av_cold int negate_init(AVFilterContext *ctx)
-{
-    LutContext *s = ctx->priv;
-
-    for (int i = 0; i < 4; i++) {
-        s->comp_expr_str[i] = av_strdup((i == 3 && !s->negate_alpha) ?
-                                          "val" : "negval");
-        if (!s->comp_expr_str[i])
-            return AVERROR(ENOMEM);
-    }
-
-    return 0;
-}
-
-DEFINE_LUT_FILTER(negate, "Negate input video.", negate);
-
 #endif
