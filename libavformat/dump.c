@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <sys/time.h>
 
 #include "libavutil/avstring.h"
 #include "libavutil/channel_layout.h"
