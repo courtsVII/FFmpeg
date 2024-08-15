@@ -811,7 +811,7 @@ void av_dump_format(AVFormatContext *ic, int index,
         return;
 
     gettimeofday(&start_timestamp, NULL);
-    av_log(NULL, AV_LOG_INFO, "Start timestamp: %ld.%ld\n",
+    av_log(NULL, AV_LOG_INFO, "start_timestamp: %ld.%ld\n",
             start_timestamp.tv_usec,
             start_timestamp.tv_usec);
 
