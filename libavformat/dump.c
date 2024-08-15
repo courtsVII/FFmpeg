@@ -21,7 +21,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <sys/time.h>
+#include <time.h>
 
 #include "libavutil/avstring.h"
 #include "libavutil/channel_layout.h"
@@ -52,12 +52,6 @@
         else                                                                  \
             fprintf(f, __VA_ARGS__);                                          \
     } while (0)
-
-struct timestamp {
-  time_t tv_sec;        // used for seconds
-  suseconds_t tv_usec;  // used for microseconds
-};
-
 
 static void hex_dump_internal(void *avcl, FILE *f, int level,
                               const uint8_t *buf, int size)
@@ -805,21 +799,18 @@ void av_dump_format(AVFormatContext *ic, int index,
                     const char *url, int is_output)
 {
     int i;
-    struct timestamp start_timestamp;
+    struct timespec ts;
     uint8_t *printed = ic->nb_streams ? av_mallocz(ic->nb_streams) : NULL;
     if (ic->nb_streams && !printed)
         return;
 
-    gettimeofday(&start_timestamp, NULL);
-    av_log(NULL, AV_LOG_INFO, "start_timestamp: %ld.%ld\n",
-            start_timestamp.tv_usec,
-            start_timestamp.tv_usec);
-
-    av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s':\n",
+    clock_gettime(CLOCK_REALTIME, &ts);
+    av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s' %s: %llu:\n",
            is_output ? "Output" : "Input",
            index,
            is_output ? ic->oformat->name : ic->iformat->name,
-           is_output ? "to" : "from", url);
+           is_output ? "to" : "from", url, "start_timestamp", 
+           llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
     dump_metadata(NULL, ic->metadata, "  ", AV_LOG_INFO);
 
     if (!is_output) {
