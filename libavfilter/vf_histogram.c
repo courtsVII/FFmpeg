@@ -18,6 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "config_components.h"
+
 #include "libavutil/colorspace.h"
 #include "libavutil/opt.h"
 #include "libavutil/parseutils.h"
@@ -65,15 +67,15 @@ typedef struct HistogramContext {
 #define FLAGS AV_OPT_FLAG_FILTERING_PARAM|AV_OPT_FLAG_VIDEO_PARAM
 
 #define COMMON_OPTIONS \
-    { "display_mode", "set display mode", OFFSET(display_mode), AV_OPT_TYPE_INT, {.i64=2}, 0, 2, FLAGS, "display_mode"}, \
-    { "d",            "set display mode", OFFSET(display_mode), AV_OPT_TYPE_INT, {.i64=2}, 0, 2, FLAGS, "display_mode"}, \
-        { "overlay", NULL, 0, AV_OPT_TYPE_CONST, {.i64=0}, 0, 0, FLAGS, "display_mode" }, \
-        { "parade",  NULL, 0, AV_OPT_TYPE_CONST, {.i64=1}, 0, 0, FLAGS, "display_mode" }, \
-        { "stack",   NULL, 0, AV_OPT_TYPE_CONST, {.i64=2}, 0, 0, FLAGS, "display_mode" }, \
-    { "levels_mode", "set levels mode", OFFSET(levels_mode), AV_OPT_TYPE_INT, {.i64=0}, 0, 1, FLAGS, "levels_mode"}, \
-    { "m",           "set levels mode", OFFSET(levels_mode), AV_OPT_TYPE_INT, {.i64=0}, 0, 1, FLAGS, "levels_mode"}, \
-        { "linear",      NULL, 0, AV_OPT_TYPE_CONST, {.i64=0}, 0, 0, FLAGS, "levels_mode" }, \
-        { "logarithmic", NULL, 0, AV_OPT_TYPE_CONST, {.i64=1}, 0, 0, FLAGS, "levels_mode" }, \
+    { "display_mode", "set display mode", OFFSET(display_mode), AV_OPT_TYPE_INT, {.i64=2}, 0, 2, FLAGS, .unit = "display_mode"}, \
+    { "d",            "set display mode", OFFSET(display_mode), AV_OPT_TYPE_INT, {.i64=2}, 0, 2, FLAGS, .unit = "display_mode"}, \
+        { "overlay", NULL, 0, AV_OPT_TYPE_CONST, {.i64=0}, 0, 0, FLAGS, .unit = "display_mode" }, \
+        { "parade",  NULL, 0, AV_OPT_TYPE_CONST, {.i64=1}, 0, 0, FLAGS, .unit = "display_mode" }, \
+        { "stack",   NULL, 0, AV_OPT_TYPE_CONST, {.i64=2}, 0, 0, FLAGS, .unit = "display_mode" }, \
+    { "levels_mode", "set levels mode", OFFSET(levels_mode), AV_OPT_TYPE_INT, {.i64=0}, 0, 1, FLAGS, .unit = "levels_mode"}, \
+    { "m",           "set levels mode", OFFSET(levels_mode), AV_OPT_TYPE_INT, {.i64=0}, 0, 1, FLAGS, .unit = "levels_mode"}, \
+        { "linear",      NULL, 0, AV_OPT_TYPE_CONST, {.i64=0}, 0, 0, FLAGS, .unit = "levels_mode" }, \
+        { "logarithmic", NULL, 0, AV_OPT_TYPE_CONST, {.i64=1}, 0, 0, FLAGS, .unit = "levels_mode" }, \
     { "components", "set color components to display", OFFSET(components), AV_OPT_TYPE_INT, {.i64=7}, 1, 15, FLAGS}, \
     { "c",          "set color components to display", OFFSET(components), AV_OPT_TYPE_INT, {.i64=7}, 1, 15, FLAGS},
 
@@ -85,15 +87,18 @@ static const AVOption histogram_options[] = {
     { "f",         "set foreground opacity", OFFSET(fgopacity), AV_OPT_TYPE_FLOAT, {.dbl=0.7}, 0, 1, FLAGS},
     { "bgopacity", "set background opacity", OFFSET(bgopacity), AV_OPT_TYPE_FLOAT, {.dbl=0.5}, 0, 1, FLAGS},
     { "b",         "set background opacity", OFFSET(bgopacity), AV_OPT_TYPE_FLOAT, {.dbl=0.5}, 0, 1, FLAGS},
-    { "colors_mode", "set colors mode", OFFSET(colors_mode), AV_OPT_TYPE_INT, {.i64=0}, 0, 6, FLAGS, "colors_mode"},
-    { "l",           "set colors mode", OFFSET(colors_mode), AV_OPT_TYPE_INT, {.i64=0}, 0, 6, FLAGS, "colors_mode"},
-        { "whiteonblack", NULL, 0, AV_OPT_TYPE_CONST, {.i64=0}, 0, 0, FLAGS, "colors_mode" },
-        { "blackonwhite", NULL, 0, AV_OPT_TYPE_CONST, {.i64=1}, 0, 0, FLAGS, "colors_mode" },
-        { "whiteongray",  NULL, 0, AV_OPT_TYPE_CONST, {.i64=2}, 0, 0, FLAGS, "colors_mode" },
-        { "blackongray",  NULL, 0, AV_OPT_TYPE_CONST, {.i64=3}, 0, 0, FLAGS, "colors_mode" },
-        { "coloronblack", NULL, 0, AV_OPT_TYPE_CONST, {.i64=4}, 0, 0, FLAGS, "colors_mode" },
-        { "coloronwhite", NULL, 0, AV_OPT_TYPE_CONST, {.i64=5}, 0, 0, FLAGS, "colors_mode" },
-        { "colorongray" , NULL, 0, AV_OPT_TYPE_CONST, {.i64=6}, 0, 0, FLAGS, "colors_mode" },
+    { "colors_mode", "set colors mode", OFFSET(colors_mode), AV_OPT_TYPE_INT, {.i64=0}, 0, 9, FLAGS, .unit = "colors_mode"},
+    { "l",           "set colors mode", OFFSET(colors_mode), AV_OPT_TYPE_INT, {.i64=0}, 0, 9, FLAGS, .unit = "colors_mode"},
+        { "whiteonblack", NULL, 0, AV_OPT_TYPE_CONST, {.i64=0}, 0, 0, FLAGS, .unit = "colors_mode" },
+        { "blackonwhite", NULL, 0, AV_OPT_TYPE_CONST, {.i64=1}, 0, 0, FLAGS, .unit = "colors_mode" },
+        { "whiteongray",  NULL, 0, AV_OPT_TYPE_CONST, {.i64=2}, 0, 0, FLAGS, .unit = "colors_mode" },
+        { "blackongray",  NULL, 0, AV_OPT_TYPE_CONST, {.i64=3}, 0, 0, FLAGS, .unit = "colors_mode" },
+        { "coloronblack", NULL, 0, AV_OPT_TYPE_CONST, {.i64=4}, 0, 0, FLAGS, .unit = "colors_mode" },
+        { "coloronwhite", NULL, 0, AV_OPT_TYPE_CONST, {.i64=5}, 0, 0, FLAGS, .unit = "colors_mode" },
+        { "colorongray" , NULL, 0, AV_OPT_TYPE_CONST, {.i64=6}, 0, 0, FLAGS, .unit = "colors_mode" },
+        { "blackoncolor", NULL, 0, AV_OPT_TYPE_CONST, {.i64=7}, 0, 0, FLAGS, .unit = "colors_mode" },
+        { "whiteoncolor", NULL, 0, AV_OPT_TYPE_CONST, {.i64=8}, 0, 0, FLAGS, .unit = "colors_mode" },
+        { "grayoncolor" , NULL, 0, AV_OPT_TYPE_CONST, {.i64=9}, 0, 0, FLAGS, .unit = "colors_mode" },
     { NULL }
 };
 
@@ -312,6 +317,41 @@ static int config_input(AVFilterLink *inlink)
                 memcpy(s->fg_color[1], blue_yuva_color,  4);
                 memcpy(s->fg_color[2], red_yuva_color,   4);
             }
+        } else if (s->colors_mode == 7) {
+            for (int i = 0; i < 4; i++)
+                for (int j = 0; j < 4; j++)
+                    FFSWAP(uint8_t, s->fg_color[i][j], s->bg_color[i][j]);
+            if (rgb) {
+                memcpy(s->bg_color[0], red_gbrp_color,   4);
+                memcpy(s->bg_color[1], green_gbrp_color, 4);
+                memcpy(s->bg_color[2], blue_gbrp_color,  4);
+            } else {
+                memcpy(s->bg_color[0], green_yuva_color, 4);
+                memcpy(s->bg_color[1], blue_yuva_color,  4);
+                memcpy(s->bg_color[2], red_yuva_color,   4);
+            }
+        } else if (s->colors_mode == 8) {
+            if (rgb) {
+                memcpy(s->bg_color[0], red_gbrp_color,   4);
+                memcpy(s->bg_color[1], green_gbrp_color, 4);
+                memcpy(s->bg_color[2], blue_gbrp_color,  4);
+            } else {
+                memcpy(s->bg_color[0], igreen_yuva_color,4);
+                memcpy(s->bg_color[1], blue_yuva_color,  4);
+                memcpy(s->bg_color[2], red_yuva_color,   4);
+            }
+        } else if (s->colors_mode == 9) {
+            for (int i = 0; i < 4; i++)
+                memcpy(s->fg_color[i], gray_color, 4);
+            if (rgb) {
+                memcpy(s->bg_color[0], red_gbrp_color,   4);
+                memcpy(s->bg_color[1], green_gbrp_color, 4);
+                memcpy(s->bg_color[2], blue_gbrp_color,  4);
+            } else {
+                memcpy(s->bg_color[0], igreen_yuva_color,4);
+                memcpy(s->bg_color[1], blue_yuva_color,  4);
+                memcpy(s->bg_color[2], red_yuva_color,   4);
+            }
         }
     }
 
@@ -517,6 +557,12 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
                             out->data[p][(j + starty) * out->linesize[p] + startx + i] = 255;
                         }
                     }
+                    if (s->display_mode) {
+                        for (j = col_height - 1; j >= 0; j--) {
+                            for (l = 0; l < s->dncomp; l++)
+                                out->data[l][(j + starty) * out->linesize[l] + startx + i] = s->bg_color[p][l];
+                        }
+                    }
                     for (j = s->level_height + s->scale_height - 1; j >= s->level_height; j--)
                         for (l = 0; l < s->dncomp; l++)
                             out->data[l][(j + starty) * out->linesize[l] + startx + i] = p == l ? i : mid;
@@ -531,6 +577,12 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
                             AV_WN16(out->data[p] + (j + starty) * out->linesize[p] + startx * 2 + i * 2, 255 * mult);
                         }
                     }
+                    if (s->display_mode) {
+                        for (j = col_height - 1; j >= 0; j--) {
+                            for (l = 0; l < s->dncomp; l++)
+                                AV_WN16(out->data[l] + (j + starty) * out->linesize[l] + startx * 2 + i * 2, s->bg_color[p][l] * mult);
+                        }
+                    }
                     for (j = s->level_height + s->scale_height - 1; j >= s->level_height; j--)
                         for (l = 0; l < s->dncomp; l++)
                             AV_WN16(out->data[l] + (j + starty) * out->linesize[l] + startx * 2 + i * 2, p == l ? i : mid * mult);
@@ -541,7 +593,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
         memset(s->histogram, 0, s->histogram_size * sizeof(unsigned));
     }
 
-    out->pts = in->pts;
+    av_frame_copy_props(out, in);
     av_frame_free(&in);
     s->x_pos++;
     if (s->x_pos >= s->width) {
@@ -615,12 +667,12 @@ static const AVOption thistogram_options[] = {
     { "e",        "display envelope", OFFSET(envelope), AV_OPT_TYPE_BOOL, {.i64=0}, 0, 1, FLAGS },
     { "ecolor", "set envelope color", OFFSET(envelope_rgba), AV_OPT_TYPE_COLOR, {.str="gold"}, 0, 0, FLAGS },
     { "ec",     "set envelope color", OFFSET(envelope_rgba), AV_OPT_TYPE_COLOR, {.str="gold"}, 0, 0, FLAGS },
-    { "slide", "set slide mode",                     OFFSET(slide), AV_OPT_TYPE_INT,   {.i64=1}, 0, 4, FLAGS, "slide" },
-        {"frame",   "draw new frames",               OFFSET(slide), AV_OPT_TYPE_CONST, {.i64=0}, 0, 0, FLAGS, "slide"},
-        {"replace", "replace old columns with new",  OFFSET(slide), AV_OPT_TYPE_CONST, {.i64=1}, 0, 0, FLAGS, "slide"},
-        {"scroll",  "scroll from right to left",     OFFSET(slide), AV_OPT_TYPE_CONST, {.i64=2}, 0, 0, FLAGS, "slide"},
-        {"rscroll", "scroll from left to right",     OFFSET(slide), AV_OPT_TYPE_CONST, {.i64=3}, 0, 0, FLAGS, "slide"},
-        {"picture", "display graph in single frame", OFFSET(slide), AV_OPT_TYPE_CONST, {.i64=4}, 0, 0, FLAGS, "slide"},
+    { "slide", "set slide mode",                     OFFSET(slide), AV_OPT_TYPE_INT,   {.i64=1}, 0, 4, FLAGS, .unit = "slide" },
+        {"frame",   "draw new frames",               OFFSET(slide), AV_OPT_TYPE_CONST, {.i64=0}, 0, 0, FLAGS, .unit = "slide"},
+        {"replace", "replace old columns with new",  OFFSET(slide), AV_OPT_TYPE_CONST, {.i64=1}, 0, 0, FLAGS, .unit = "slide"},
+        {"scroll",  "scroll from right to left",     OFFSET(slide), AV_OPT_TYPE_CONST, {.i64=2}, 0, 0, FLAGS, .unit = "slide"},
+        {"rscroll", "scroll from left to right",     OFFSET(slide), AV_OPT_TYPE_CONST, {.i64=3}, 0, 0, FLAGS, .unit = "slide"},
+        {"picture", "display graph in single frame", OFFSET(slide), AV_OPT_TYPE_CONST, {.i64=4}, 0, 0, FLAGS, .unit = "slide"},
     { NULL }
 };
 

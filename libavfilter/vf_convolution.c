@@ -19,15 +19,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "config_components.h"
+
 #include "libavutil/avstring.h"
 #include "libavutil/imgutils.h"
 #include "libavutil/intreadwrite.h"
+#include "libavutil/mem.h"
 #include "libavutil/mem_internal.h"
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
 #include "avfilter.h"
 #include "convolution.h"
-#include "formats.h"
 #include "internal.h"
 #include "video.h"
 
@@ -39,21 +41,21 @@ static const AVOption convolution_options[] = {
     { "1m", "set matrix for 2nd plane", OFFSET(matrix_str[1]), AV_OPT_TYPE_STRING, {.str="0 0 0 0 1 0 0 0 0"}, 0, 0, FLAGS },
     { "2m", "set matrix for 3rd plane", OFFSET(matrix_str[2]), AV_OPT_TYPE_STRING, {.str="0 0 0 0 1 0 0 0 0"}, 0, 0, FLAGS },
     { "3m", "set matrix for 4th plane", OFFSET(matrix_str[3]), AV_OPT_TYPE_STRING, {.str="0 0 0 0 1 0 0 0 0"}, 0, 0, FLAGS },
-    { "0rdiv", "set rdiv for 1st plane", OFFSET(rdiv[0]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
-    { "1rdiv", "set rdiv for 2nd plane", OFFSET(rdiv[1]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
-    { "2rdiv", "set rdiv for 3rd plane", OFFSET(rdiv[2]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
-    { "3rdiv", "set rdiv for 4th plane", OFFSET(rdiv[3]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
+    { "0rdiv", "set rdiv for 1st plane", OFFSET(user_rdiv[0]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
+    { "1rdiv", "set rdiv for 2nd plane", OFFSET(user_rdiv[1]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
+    { "2rdiv", "set rdiv for 3rd plane", OFFSET(user_rdiv[2]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
+    { "3rdiv", "set rdiv for 4th plane", OFFSET(user_rdiv[3]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
     { "0bias", "set bias for 1st plane", OFFSET(bias[0]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
     { "1bias", "set bias for 2nd plane", OFFSET(bias[1]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
     { "2bias", "set bias for 3rd plane", OFFSET(bias[2]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
     { "3bias", "set bias for 4th plane", OFFSET(bias[3]), AV_OPT_TYPE_FLOAT, {.dbl=0.0}, 0.0, INT_MAX, FLAGS},
-    { "0mode", "set matrix mode for 1st plane", OFFSET(mode[0]), AV_OPT_TYPE_INT, {.i64=MATRIX_SQUARE}, 0, MATRIX_NBMODES-1, FLAGS, "mode" },
-    { "1mode", "set matrix mode for 2nd plane", OFFSET(mode[1]), AV_OPT_TYPE_INT, {.i64=MATRIX_SQUARE}, 0, MATRIX_NBMODES-1, FLAGS, "mode" },
-    { "2mode", "set matrix mode for 3rd plane", OFFSET(mode[2]), AV_OPT_TYPE_INT, {.i64=MATRIX_SQUARE}, 0, MATRIX_NBMODES-1, FLAGS, "mode" },
-    { "3mode", "set matrix mode for 4th plane", OFFSET(mode[3]), AV_OPT_TYPE_INT, {.i64=MATRIX_SQUARE}, 0, MATRIX_NBMODES-1, FLAGS, "mode" },
-    { "square", "square matrix",     0, AV_OPT_TYPE_CONST, {.i64=MATRIX_SQUARE}, 0, 0, FLAGS, "mode" },
-    { "row",    "single row matrix", 0, AV_OPT_TYPE_CONST, {.i64=MATRIX_ROW}   , 0, 0, FLAGS, "mode" },
-    { "column", "single column matrix", 0, AV_OPT_TYPE_CONST, {.i64=MATRIX_COLUMN}, 0, 0, FLAGS, "mode" },
+    { "0mode", "set matrix mode for 1st plane", OFFSET(mode[0]), AV_OPT_TYPE_INT, {.i64=MATRIX_SQUARE}, 0, MATRIX_NBMODES-1, FLAGS, .unit = "mode" },
+    { "1mode", "set matrix mode for 2nd plane", OFFSET(mode[1]), AV_OPT_TYPE_INT, {.i64=MATRIX_SQUARE}, 0, MATRIX_NBMODES-1, FLAGS, .unit = "mode" },
+    { "2mode", "set matrix mode for 3rd plane", OFFSET(mode[2]), AV_OPT_TYPE_INT, {.i64=MATRIX_SQUARE}, 0, MATRIX_NBMODES-1, FLAGS, .unit = "mode" },
+    { "3mode", "set matrix mode for 4th plane", OFFSET(mode[3]), AV_OPT_TYPE_INT, {.i64=MATRIX_SQUARE}, 0, MATRIX_NBMODES-1, FLAGS, .unit = "mode" },
+    { "square", "square matrix",     0, AV_OPT_TYPE_CONST, {.i64=MATRIX_SQUARE}, 0, 0, FLAGS, .unit = "mode" },
+    { "row",    "single row matrix", 0, AV_OPT_TYPE_CONST, {.i64=MATRIX_ROW}   , 0, 0, FLAGS, .unit = "mode" },
+    { "column", "single column matrix", 0, AV_OPT_TYPE_CONST, {.i64=MATRIX_COLUMN}, 0, 0, FLAGS, .unit = "mode" },
     { NULL }
 };
 
@@ -132,24 +134,6 @@ static void filter16_roberts(uint8_t *dstp, int width,
     for (x = 0; x < width; x++) {
         float suma = AV_RN16A(&c[0][2 * x]) *  1 + AV_RN16A(&c[1][2 * x]) * -1;
         float sumb = AV_RN16A(&c[4][2 * x]) *  1 + AV_RN16A(&c[3][2 * x]) * -1;
-
-        dst[x] = av_clip(sqrtf(suma*suma + sumb*sumb) * scale + delta, 0, peak);
-    }
-}
-
-static void filter16_sobel(uint8_t *dstp, int width,
-                           float scale, float delta, const int *const matrix,
-                           const uint8_t *c[], int peak, int radius,
-                           int dstride, int stride, int size)
-{
-    uint16_t *dst = (uint16_t *)dstp;
-    int x;
-
-    for (x = 0; x < width; x++) {
-        float suma = AV_RN16A(&c[0][2 * x]) * -1 + AV_RN16A(&c[1][2 * x]) * -2 + AV_RN16A(&c[2][2 * x]) * -1 +
-                     AV_RN16A(&c[6][2 * x]) *  1 + AV_RN16A(&c[7][2 * x]) *  2 + AV_RN16A(&c[8][2 * x]) *  1;
-        float sumb = AV_RN16A(&c[0][2 * x]) * -1 + AV_RN16A(&c[2][2 * x]) *  1 + AV_RN16A(&c[3][2 * x]) * -2 +
-                     AV_RN16A(&c[5][2 * x]) *  2 + AV_RN16A(&c[6][2 * x]) * -1 + AV_RN16A(&c[8][2 * x]) *  1;
 
         dst[x] = av_clip(sqrtf(suma*suma + sumb*sumb) * scale + delta, 0, peak);
     }
@@ -254,26 +238,6 @@ static void filter_roberts(uint8_t *dst, int width,
     for (x = 0; x < width; x++) {
         float suma = c[0][x] *  1 + c[1][x] * -1;
         float sumb = c[4][x] *  1 + c[3][x] * -1;
-
-        dst[x] = av_clip_uint8(sqrtf(suma*suma + sumb*sumb) * scale + delta);
-    }
-}
-
-static void filter_sobel(uint8_t *dst, int width,
-                         float scale, float delta, const int *const matrix,
-                         const uint8_t *c[], int peak, int radius,
-                         int dstride, int stride, int size)
-{
-    const uint8_t *c0 = c[0], *c1 = c[1], *c2 = c[2];
-    const uint8_t *c3 = c[3], *c5 = c[5];
-    const uint8_t *c6 = c[6], *c7 = c[7], *c8 = c[8];
-    int x;
-
-    for (x = 0; x < width; x++) {
-        float suma = c0[x] * -1 + c1[x] * -2 + c2[x] * -1 +
-                     c6[x] *  1 + c7[x] *  2 + c8[x] *  1;
-        float sumb = c0[x] * -1 + c2[x] *  1 + c3[x] * -2 +
-                     c5[x] *  2 + c6[x] * -1 + c8[x] *  1;
 
         dst[x] = av_clip_uint8(sqrtf(suma*suma + sumb*sumb) * scale + delta);
     }
@@ -550,22 +514,6 @@ static void filter_column(uint8_t *dst, int height,
     }
 }
 
-static void setup_3x3(int radius, const uint8_t *c[], const uint8_t *src, int stride,
-                      int x, int w, int y, int h, int bpc)
-{
-    int i;
-
-    for (i = 0; i < 9; i++) {
-        int xoff = FFABS(x + ((i % 3) - 1));
-        int yoff = FFABS(y + (i / 3) - 1);
-
-        xoff = xoff >= w ? 2 * w - 1 - xoff : xoff;
-        yoff = yoff >= h ? 2 * h - 1 - yoff : yoff;
-
-        c[i] = src + xoff * bpc + yoff * stride;
-    }
-}
-
 static void setup_5x5(int radius, const uint8_t *c[], const uint8_t *src, int stride,
                       int x, int w, int y, int h, int bpc)
 {
@@ -699,12 +647,12 @@ static int filter_slice(AVFilterContext *ctx, void *arg, int jobnr, int nb_jobs)
     return 0;
 }
 
-static int config_input(AVFilterLink *inlink)
+static int param_init(AVFilterContext *ctx)
 {
-    AVFilterContext *ctx = inlink->dst;
     ConvolutionContext *s = ctx->priv;
+    AVFilterLink *inlink = ctx->inputs[0];
     const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(inlink->format);
-    int p;
+    int p, i;
 
     s->depth = desc->comp[0].depth;
     s->max = (1 << s->depth) - 1;
@@ -719,86 +667,16 @@ static int config_input(AVFilterLink *inlink)
     s->bpc = (s->depth + 7) / 8;
 
     if (!strcmp(ctx->filter->name, "convolution")) {
-        if (s->depth > 8) {
-            for (p = 0; p < s->nb_planes; p++) {
-                if (s->mode[p] == MATRIX_ROW)
-                    s->filter[p] = filter16_row;
-                else if (s->mode[p] == MATRIX_COLUMN)
-                    s->filter[p] = filter16_column;
-                else if (s->size[p] == 3)
-                    s->filter[p] = filter16_3x3;
-                else if (s->size[p] == 5)
-                    s->filter[p] = filter16_5x5;
-                else if (s->size[p] == 7)
-                    s->filter[p] = filter16_7x7;
-            }
-        }
-#if CONFIG_CONVOLUTION_FILTER && ARCH_X86_64
-        ff_convolution_init_x86(s);
-#endif
-    } else if (!strcmp(ctx->filter->name, "prewitt")) {
-        if (s->depth > 8)
-            for (p = 0; p < s->nb_planes; p++)
-                s->filter[p] = filter16_prewitt;
-    } else if (!strcmp(ctx->filter->name, "roberts")) {
-        if (s->depth > 8)
-            for (p = 0; p < s->nb_planes; p++)
-                s->filter[p] = filter16_roberts;
-    } else if (!strcmp(ctx->filter->name, "sobel")) {
-        if (s->depth > 8)
-            for (p = 0; p < s->nb_planes; p++)
-                s->filter[p] = filter16_sobel;
-    } else if (!strcmp(ctx->filter->name, "kirsch")) {
-        if (s->depth > 8)
-            for (p = 0; p < s->nb_planes; p++)
-                s->filter[p] = filter16_kirsch;
-    } else if (!strcmp(ctx->filter->name, "scharr")) {
-        if (s->depth > 8)
-            for (p = 0; p < s->nb_planes; p++)
-                s->filter[p] = filter16_scharr;
-    }
-
-    return 0;
-}
-
-static int filter_frame(AVFilterLink *inlink, AVFrame *in)
-{
-    AVFilterContext *ctx = inlink->dst;
-    ConvolutionContext *s = ctx->priv;
-    AVFilterLink *outlink = ctx->outputs[0];
-    AVFrame *out;
-    ThreadData td;
-
-    out = ff_get_video_buffer(outlink, outlink->w, outlink->h);
-    if (!out) {
-        av_frame_free(&in);
-        return AVERROR(ENOMEM);
-    }
-    av_frame_copy_props(out, in);
-
-    td.in = in;
-    td.out = out;
-    ff_filter_execute(ctx, filter_slice, &td, NULL,
-                      FFMIN3(s->planeheight[1], s->planewidth[1], s->nb_threads));
-
-    av_frame_free(&in);
-    return ff_filter_frame(outlink, out);
-}
-
-static av_cold int init(AVFilterContext *ctx)
-{
-    ConvolutionContext *s = ctx->priv;
-    int i;
-
-    if (!strcmp(ctx->filter->name, "convolution")) {
         for (i = 0; i < 4; i++) {
             int *matrix = (int *)s->matrix[i];
-            char *p, *arg, *saveptr = NULL;
-            float sum = 0;
+            char *orig, *p, *arg, *saveptr = NULL;
+            float sum = 1.f;
 
-            p = s->matrix_str[i];
+            p = orig = av_strdup(s->matrix_str[i]);
             if (p) {
                 s->matrix_length[i] = 0;
+                s->rdiv[i] = s->user_rdiv[i];
+                sum = 0.f;
 
                 while (s->matrix_length[i] < 49) {
                     if (!(arg = av_strtok(p, " |", &saveptr)))
@@ -810,6 +688,7 @@ static av_cold int init(AVFilterContext *ctx)
                     s->matrix_length[i]++;
                 }
 
+                av_freep(&orig);
                 if (!(s->matrix_length[i] & 1)) {
                     av_log(ctx, AV_LOG_ERROR, "number of matrix elements must be odd\n");
                     return AVERROR(EINVAL);
@@ -866,10 +745,8 @@ static av_cold int init(AVFilterContext *ctx)
         }
     } else if (!strcmp(ctx->filter->name, "prewitt")) {
         for (i = 0; i < 4; i++) {
-            if ((1 << i) & s->planes)
-                s->filter[i] = filter_prewitt;
-            else
-                s->copy[i] = 1;
+            s->filter[i] = filter_prewitt;
+            s->copy[i] = !((1 << i) & s->planes);
             s->size[i] = 3;
             s->setup[i] = setup_3x3;
             s->rdiv[i] = s->scale;
@@ -877,32 +754,21 @@ static av_cold int init(AVFilterContext *ctx)
         }
     } else if (!strcmp(ctx->filter->name, "roberts")) {
         for (i = 0; i < 4; i++) {
-            if ((1 << i) & s->planes)
-                s->filter[i] = filter_roberts;
-            else
-                s->copy[i] = 1;
+            s->filter[i] = filter_roberts;
+            s->copy[i] = !((1 << i) & s->planes);
             s->size[i] = 3;
             s->setup[i] = setup_3x3;
             s->rdiv[i] = s->scale;
             s->bias[i] = s->delta;
         }
+#if CONFIG_SOBEL_FILTER
     } else if (!strcmp(ctx->filter->name, "sobel")) {
-        for (i = 0; i < 4; i++) {
-            if ((1 << i) & s->planes)
-                s->filter[i] = filter_sobel;
-            else
-                s->copy[i] = 1;
-            s->size[i] = 3;
-            s->setup[i] = setup_3x3;
-            s->rdiv[i] = s->scale;
-            s->bias[i] = s->delta;
-        }
+        ff_sobel_init(s, s->depth, s->nb_planes);
+#endif
     } else if (!strcmp(ctx->filter->name, "kirsch")) {
         for (i = 0; i < 4; i++) {
-            if ((1 << i) & s->planes)
-                s->filter[i] = filter_kirsch;
-            else
-                s->copy[i] = 1;
+            s->filter[i] = filter_kirsch;
+            s->copy[i] = !((1 << i) & s->planes);
             s->size[i] = 3;
             s->setup[i] = setup_3x3;
             s->rdiv[i] = s->scale;
@@ -910,10 +776,8 @@ static av_cold int init(AVFilterContext *ctx)
         }
     } else if (!strcmp(ctx->filter->name, "scharr")) {
         for (i = 0; i < 4; i++) {
-            if ((1 << i) & s->planes)
-                s->filter[i] = filter_scharr;
-            else
-                s->copy[i] = 1;
+            s->filter[i] = filter_scharr;
+            s->copy[i] = !((1 << i) & s->planes);
             s->size[i] = 3;
             s->setup[i] = setup_3x3;
             s->rdiv[i] = s->scale;
@@ -921,7 +785,73 @@ static av_cold int init(AVFilterContext *ctx)
         }
     }
 
+    if (!strcmp(ctx->filter->name, "convolution")) {
+        if (s->depth > 8) {
+            for (p = 0; p < s->nb_planes; p++) {
+                if (s->mode[p] == MATRIX_ROW)
+                    s->filter[p] = filter16_row;
+                else if (s->mode[p] == MATRIX_COLUMN)
+                    s->filter[p] = filter16_column;
+                else if (s->size[p] == 3)
+                    s->filter[p] = filter16_3x3;
+                else if (s->size[p] == 5)
+                    s->filter[p] = filter16_5x5;
+                else if (s->size[p] == 7)
+                    s->filter[p] = filter16_7x7;
+            }
+        }
+#if CONFIG_CONVOLUTION_FILTER && ARCH_X86_64
+        ff_convolution_init_x86(s);
+#endif
+    } else if (!strcmp(ctx->filter->name, "prewitt")) {
+        if (s->depth > 8)
+            for (p = 0; p < s->nb_planes; p++)
+                s->filter[p] = filter16_prewitt;
+    } else if (!strcmp(ctx->filter->name, "roberts")) {
+        if (s->depth > 8)
+            for (p = 0; p < s->nb_planes; p++)
+                s->filter[p] = filter16_roberts;
+    } else if (!strcmp(ctx->filter->name, "kirsch")) {
+        if (s->depth > 8)
+            for (p = 0; p < s->nb_planes; p++)
+                s->filter[p] = filter16_kirsch;
+    } else if (!strcmp(ctx->filter->name, "scharr")) {
+        if (s->depth > 8)
+            for (p = 0; p < s->nb_planes; p++)
+                s->filter[p] = filter16_scharr;
+    }
+
     return 0;
+}
+
+static int config_input(AVFilterLink *inlink)
+{
+    AVFilterContext *ctx = inlink->dst;
+    return param_init(ctx);
+}
+
+static int filter_frame(AVFilterLink *inlink, AVFrame *in)
+{
+    AVFilterContext *ctx = inlink->dst;
+    ConvolutionContext *s = ctx->priv;
+    AVFilterLink *outlink = ctx->outputs[0];
+    AVFrame *out;
+    ThreadData td;
+
+    out = ff_get_video_buffer(outlink, outlink->w, outlink->h);
+    if (!out) {
+        av_frame_free(&in);
+        return AVERROR(ENOMEM);
+    }
+    av_frame_copy_props(out, in);
+
+    td.in = in;
+    td.out = out;
+    ff_filter_execute(ctx, filter_slice, &td, NULL,
+                      FFMIN3(s->planeheight[1], s->planewidth[1], s->nb_threads));
+
+    av_frame_free(&in);
+    return ff_filter_frame(outlink, out);
 }
 
 static int process_command(AVFilterContext *ctx, const char *cmd, const char *args,
@@ -933,7 +863,7 @@ static int process_command(AVFilterContext *ctx, const char *cmd, const char *ar
     if (ret < 0)
         return ret;
 
-    return init(ctx);
+    return param_init(ctx);
 }
 
 static const AVFilterPad convolution_inputs[] = {
@@ -945,13 +875,6 @@ static const AVFilterPad convolution_inputs[] = {
     },
 };
 
-static const AVFilterPad convolution_outputs[] = {
-    {
-        .name = "default",
-        .type = AVMEDIA_TYPE_VIDEO,
-    },
-};
-
 #if CONFIG_CONVOLUTION_FILTER
 
 const AVFilter ff_vf_convolution = {
@@ -959,9 +882,8 @@ const AVFilter ff_vf_convolution = {
     .description   = NULL_IF_CONFIG_SMALL("Apply convolution filter."),
     .priv_size     = sizeof(ConvolutionContext),
     .priv_class    = &convolution_class,
-    .init          = init,
     FILTER_INPUTS(convolution_inputs),
-    FILTER_OUTPUTS(convolution_outputs),
+    FILTER_OUTPUTS(ff_video_default_filterpad),
     FILTER_PIXFMTS_ARRAY(pix_fmts),
     .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC | AVFILTER_FLAG_SLICE_THREADS,
     .process_command = process_command,
@@ -986,9 +908,8 @@ const AVFilter ff_vf_prewitt = {
     .description   = NULL_IF_CONFIG_SMALL("Apply prewitt operator."),
     .priv_size     = sizeof(ConvolutionContext),
     .priv_class    = &common_class,
-    .init          = init,
     FILTER_INPUTS(convolution_inputs),
-    FILTER_OUTPUTS(convolution_outputs),
+    FILTER_OUTPUTS(ff_video_default_filterpad),
     FILTER_PIXFMTS_ARRAY(pix_fmts),
     .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC | AVFILTER_FLAG_SLICE_THREADS,
     .process_command = process_command,
@@ -1003,9 +924,8 @@ const AVFilter ff_vf_sobel = {
     .description   = NULL_IF_CONFIG_SMALL("Apply sobel operator."),
     .priv_size     = sizeof(ConvolutionContext),
     .priv_class    = &common_class,
-    .init          = init,
     FILTER_INPUTS(convolution_inputs),
-    FILTER_OUTPUTS(convolution_outputs),
+    FILTER_OUTPUTS(ff_video_default_filterpad),
     FILTER_PIXFMTS_ARRAY(pix_fmts),
     .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC | AVFILTER_FLAG_SLICE_THREADS,
     .process_command = process_command,
@@ -1020,9 +940,8 @@ const AVFilter ff_vf_roberts = {
     .description   = NULL_IF_CONFIG_SMALL("Apply roberts cross operator."),
     .priv_size     = sizeof(ConvolutionContext),
     .priv_class    = &common_class,
-    .init          = init,
     FILTER_INPUTS(convolution_inputs),
-    FILTER_OUTPUTS(convolution_outputs),
+    FILTER_OUTPUTS(ff_video_default_filterpad),
     FILTER_PIXFMTS_ARRAY(pix_fmts),
     .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC | AVFILTER_FLAG_SLICE_THREADS,
     .process_command = process_command,
@@ -1037,9 +956,8 @@ const AVFilter ff_vf_kirsch = {
     .description   = NULL_IF_CONFIG_SMALL("Apply kirsch operator."),
     .priv_size     = sizeof(ConvolutionContext),
     .priv_class    = &common_class,
-    .init          = init,
     FILTER_INPUTS(convolution_inputs),
-    FILTER_OUTPUTS(convolution_outputs),
+    FILTER_OUTPUTS(ff_video_default_filterpad),
     FILTER_PIXFMTS_ARRAY(pix_fmts),
     .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC | AVFILTER_FLAG_SLICE_THREADS,
     .process_command = process_command,
@@ -1054,9 +972,8 @@ const AVFilter ff_vf_scharr = {
     .description   = NULL_IF_CONFIG_SMALL("Apply scharr operator."),
     .priv_size     = sizeof(ConvolutionContext),
     .priv_class    = &common_class,
-    .init          = init,
     FILTER_INPUTS(convolution_inputs),
-    FILTER_OUTPUTS(convolution_outputs),
+    FILTER_OUTPUTS(ff_video_default_filterpad),
     FILTER_PIXFMTS_ARRAY(pix_fmts),
     .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC | AVFILTER_FLAG_SLICE_THREADS,
     .process_command = process_command,

@@ -32,7 +32,6 @@
 #include "libavcodec/mathops.h" // for mid_pred(), which is a macro so no link dependency
 #include "avfilter.h"
 #include "drawutils.h"
-#include "formats.h"
 #include "internal.h"
 #include "video.h"
 
@@ -96,9 +95,9 @@ typedef struct SelectiveColorContext {
     { color_name"s", "adjust "color_name" regions", OFFSET(opt_cmyk_adjust[range]), AV_OPT_TYPE_STRING, {.str=NULL}, 0, 0, FLAGS }
 
 static const AVOption selectivecolor_options[] = {
-    { "correction_method", "select correction method", OFFSET(correction_method), AV_OPT_TYPE_INT, {.i64 = CORRECTION_METHOD_ABSOLUTE}, 0, NB_CORRECTION_METHODS-1, FLAGS, "correction_method" },
-        { "absolute", NULL, 0, AV_OPT_TYPE_CONST, {.i64=CORRECTION_METHOD_ABSOLUTE}, INT_MIN, INT_MAX, FLAGS, "correction_method" },
-        { "relative", NULL, 0, AV_OPT_TYPE_CONST, {.i64=CORRECTION_METHOD_RELATIVE}, INT_MIN, INT_MAX, FLAGS, "correction_method" },
+    { "correction_method", "select correction method", OFFSET(correction_method), AV_OPT_TYPE_INT, {.i64 = CORRECTION_METHOD_ABSOLUTE}, 0, NB_CORRECTION_METHODS-1, FLAGS, .unit = "correction_method" },
+        { "absolute", NULL, 0, AV_OPT_TYPE_CONST, {.i64=CORRECTION_METHOD_ABSOLUTE}, INT_MIN, INT_MAX, FLAGS, .unit = "correction_method" },
+        { "relative", NULL, 0, AV_OPT_TYPE_CONST, {.i64=CORRECTION_METHOD_RELATIVE}, INT_MIN, INT_MAX, FLAGS, .unit = "correction_method" },
     RANGE_OPTION("red",     RANGE_REDS),
     RANGE_OPTION("yellow",  RANGE_YELLOWS),
     RANGE_OPTION("green",   RANGE_GREENS),
@@ -223,7 +222,7 @@ static int parse_psfile(AVFilterContext *ctx, const char *fname)
         int k;
         for (k = 0; k < FF_ARRAY_ELEMS(s->cmyk_adjust[0]); k++) {
             READ16(val);
-            s->cmyk_adjust[i][k] = val / 100.;
+            s->cmyk_adjust[i][k] = val / 100.f;
         }
         ret = register_range(s, i);
         if (ret < 0)
@@ -299,11 +298,11 @@ static const enum AVPixelFormat pix_fmts[] = {
 static inline int comp_adjust(int scale, float value, float adjust, float k, int correction_method)
 {
     const float min = -value;
-    const float max = 1. - value;
-    float res = (-1. - adjust) * k - adjust;
+    const float max = 1.f - value;
+    float res = (-1.f - adjust) * k - adjust;
     if (correction_method == CORRECTION_METHOD_RELATIVE)
         res *= max;
-    return lrint(av_clipf(res, min, max) * scale);
+    return lrintf(av_clipf(res, min, max) * scale);
 }
 
 #define DECLARE_SELECTIVE_COLOR_FUNC(nbits)                                                             \
@@ -474,19 +473,12 @@ static const AVFilterPad selectivecolor_inputs[] = {
     },
 };
 
-static const AVFilterPad selectivecolor_outputs[] = {
-    {
-        .name = "default",
-        .type = AVMEDIA_TYPE_VIDEO,
-    },
-};
-
 const AVFilter ff_vf_selectivecolor = {
     .name          = "selectivecolor",
     .description   = NULL_IF_CONFIG_SMALL("Apply CMYK adjustments to specific color ranges."),
     .priv_size     = sizeof(SelectiveColorContext),
     FILTER_INPUTS(selectivecolor_inputs),
-    FILTER_OUTPUTS(selectivecolor_outputs),
+    FILTER_OUTPUTS(ff_video_default_filterpad),
     FILTER_PIXFMTS_ARRAY(pix_fmts),
     .priv_class    = &selectivecolor_class,
     .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC | AVFILTER_FLAG_SLICE_THREADS,

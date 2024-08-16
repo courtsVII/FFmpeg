@@ -23,15 +23,16 @@
  * Calculate the Identity between two input videos.
  */
 
+#include "config_components.h"
+
 #include "libavutil/avstring.h"
+#include "libavutil/mem.h"
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
 #include "avfilter.h"
 #include "drawutils.h"
-#include "formats.h"
 #include "framesync.h"
 #include "internal.h"
-#include "video.h"
 #include "scene_sad.h"
 
 typedef struct IdentityContext {
@@ -412,7 +413,9 @@ const AVFilter ff_vf_identity = {
     FILTER_INPUTS(identity_inputs),
     FILTER_OUTPUTS(identity_outputs),
     FILTER_PIXFMTS_ARRAY(pix_fmts),
-    .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_INTERNAL | AVFILTER_FLAG_SLICE_THREADS,
+    .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_INTERNAL |
+                     AVFILTER_FLAG_SLICE_THREADS             |
+                     AVFILTER_FLAG_METADATA_ONLY,
 };
 
 #endif /* CONFIG_IDENTITY_FILTER */
@@ -434,7 +437,9 @@ const AVFilter ff_vf_msad = {
     FILTER_INPUTS(identity_inputs),
     FILTER_OUTPUTS(identity_outputs),
     FILTER_PIXFMTS_ARRAY(pix_fmts),
-    .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_INTERNAL | AVFILTER_FLAG_SLICE_THREADS,
+    .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_INTERNAL |
+                     AVFILTER_FLAG_SLICE_THREADS             |
+                     AVFILTER_FLAG_METADATA_ONLY,
 };
 
 #endif /* CONFIG_MSAD_FILTER */
