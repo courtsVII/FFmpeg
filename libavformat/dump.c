@@ -870,7 +870,6 @@ void av_dump_format(AVFormatContext *ic, int index,
     if (ic->nb_streams && !printed)
         return;
 
-    av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s':\n",
     clock_gettime(CLOCK_REALTIME, &ts);
     av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s' %s: %llu:\n",
            is_output ? "Output" : "Input",
