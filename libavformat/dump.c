@@ -863,6 +863,7 @@ static void dump_stream_group(const AVFormatContext *ic, uint8_t *printed,
 void av_dump_format(AVFormatContext *ic, int index,
                     const char *url, int is_output)
 {
+    int i;
     struct timespec ts;
     uint8_t *printed = ic->nb_streams ? av_mallocz(ic->nb_streams) : NULL;
     if (ic->nb_streams && !printed)
