@@ -879,7 +879,7 @@ void av_dump_format(AVFormatContext *ic, int index,
            is_output ? "to" : "from", url);
            is_output ? "to" : "from", url, "start_timestamp", 
            llround((long long) ts.tv_sec * 1000 + ts.tv_nsec / 1e6));
-   dump_metadata(NULL, ic->metadata, "  ", AV_LOG_INFO);
+    dump_metadata(NULL, ic->metadata, "  ", AV_LOG_INFO);
 
     if (!is_output) {
         av_log(NULL, AV_LOG_INFO, "  Duration: ");
