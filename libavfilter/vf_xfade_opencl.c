@@ -22,7 +22,6 @@
 
 #include "avfilter.h"
 #include "filters.h"
-#include "internal.h"
 #include "opencl.h"
 #include "opencl_source.h"
 #include "video.h"
@@ -216,6 +215,8 @@ static int xfade_opencl_config_output(AVFilterLink *outlink)
     XFadeOpenCLContext *ctx = avctx->priv;
     AVFilterLink *inlink0 = avctx->inputs[0];
     AVFilterLink *inlink1 = avctx->inputs[1];
+    FilterLink *il = ff_filter_link(inlink0);
+    FilterLink *ol = ff_filter_link(outlink);
     int err;
 
     err = ff_opencl_filter_config_output(outlink);
@@ -245,7 +246,7 @@ static int xfade_opencl_config_output(AVFilterLink *outlink)
 
     outlink->time_base = inlink0->time_base;
     outlink->sample_aspect_ratio = inlink0->sample_aspect_ratio;
-    outlink->frame_rate = inlink0->frame_rate;
+    ol->frame_rate = il->frame_rate;
 
     if (ctx->duration)
         ctx->duration_pts = av_rescale_q(ctx->duration, AV_TIME_BASE_Q, outlink->time_base);
@@ -429,11 +430,12 @@ static const AVFilterPad xfade_opencl_outputs[] = {
     },
 };
 
-const AVFilter ff_vf_xfade_opencl = {
-    .name            = "xfade_opencl",
-    .description     = NULL_IF_CONFIG_SMALL("Cross fade one video with another video."),
+const FFFilter ff_vf_xfade_opencl = {
+    .p.name          = "xfade_opencl",
+    .p.description   = NULL_IF_CONFIG_SMALL("Cross fade one video with another video."),
+    .p.priv_class    = &xfade_opencl_class,
+    .p.flags         = AVFILTER_FLAG_HWDEVICE,
     .priv_size       = sizeof(XFadeOpenCLContext),
-    .priv_class      = &xfade_opencl_class,
     .init            = &ff_opencl_filter_init,
     .uninit          = &xfade_opencl_uninit,
     .activate        = &xfade_opencl_activate,
@@ -441,5 +443,4 @@ const AVFilter ff_vf_xfade_opencl = {
     FILTER_OUTPUTS(xfade_opencl_outputs),
     FILTER_SINGLE_PIXFMT(AV_PIX_FMT_OPENCL),
     .flags_internal  = FF_FILTER_FLAG_HWFRAME_AWARE,
-    .flags          = AVFILTER_FLAG_HWDEVICE,
 };

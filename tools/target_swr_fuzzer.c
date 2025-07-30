@@ -79,10 +79,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     char out_layout_string[256];
     uint8_t * ain[SWR_CH_MAX];
     uint8_t *aout[SWR_CH_MAX];
-    uint8_t *out_data;
+    uint8_t *out_data = NULL;
     int in_sample_nb;
     int out_sample_nb = size;
     int count;
+    int ret;
 
     if (size > 128) {
         GetByteContext gbc;
@@ -97,7 +98,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         av_channel_layout_copy(& in_ch_layout,  &layouts[bytestream2_get_byte(&gbc) % FF_ARRAY_ELEMS(layouts)]);
         av_channel_layout_copy(&out_ch_layout,  &layouts[bytestream2_get_byte(&gbc) % FF_ARRAY_ELEMS(layouts)]);
 
-        out_sample_nb = bytestream2_get_le32(&gbc);
+        out_sample_nb = bytestream2_get_le32(&gbc) & 0x7FFFFFFF;
 
         flags64 = bytestream2_get_le64(&gbc);
         if (flags64 & 0x10)
@@ -128,18 +129,24 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
      in_sample_nb = size / (in_ch_count * av_get_bytes_per_sample(in_sample_fmt));
     out_sample_nb = out_sample_nb % (av_rescale(in_sample_nb, 2*out_sample_rate, in_sample_rate) + 1);
 
+    if (in_sample_nb > 1000*1000 || out_sample_nb > 1000*1000)
+        goto end;
+
     out_data = av_malloc(out_sample_nb * out_ch_count * av_get_bytes_per_sample(out_sample_fmt));
     if (!out_data)
         goto end;
 
-    av_samples_fill_arrays(ain , NULL,     data,  in_ch_count,  in_sample_nb,  in_sample_fmt, 1);
-    av_samples_fill_arrays(aout, NULL, out_data, out_ch_count, out_sample_nb, out_sample_fmt, 1);
+    ret = av_samples_fill_arrays(ain , NULL,     data,  in_ch_count,  in_sample_nb,  in_sample_fmt, 1);
+    if (ret < 0)
+        goto end;
+    ret = av_samples_fill_arrays(aout, NULL, out_data, out_ch_count, out_sample_nb, out_sample_fmt, 1);
+    if (ret < 0)
+        goto end;
 
     count = swr_convert(swr, aout, out_sample_nb, (const uint8_t **)ain, in_sample_nb);
 
-    av_freep(&out_data);
-
 end:
+    av_freep(&out_data);
     swr_free(&swr);
 
     return 0;

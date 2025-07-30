@@ -35,7 +35,7 @@
 #include "libavutil/samplefmt.h"
 #include "audio.h"
 #include "avfilter.h"
-#include "internal.h"
+#include "filters.h"
 
 typedef struct CompandSegment {
     double x, y;
@@ -634,12 +634,12 @@ static const AVFilterPad mcompand_outputs[] = {
 };
 
 
-const AVFilter ff_af_mcompand = {
-    .name           = "mcompand",
-    .description    = NULL_IF_CONFIG_SMALL(
+const FFFilter ff_af_mcompand = {
+    .p.name         = "mcompand",
+    .p.description  = NULL_IF_CONFIG_SMALL(
             "Multiband Compress or expand audio dynamic range."),
+    .p.priv_class   = &mcompand_class,
     .priv_size      = sizeof(MCompandContext),
-    .priv_class     = &mcompand_class,
     .uninit         = uninit,
     FILTER_INPUTS(mcompand_inputs),
     FILTER_OUTPUTS(mcompand_outputs),
